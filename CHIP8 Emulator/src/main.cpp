@@ -1,6 +1,7 @@
-#include <SDL.h>
-#include <cstdlib>
 #include <iostream>
+#include <SDL.h>
+
+#include "Emulator/Memory.h"
 
 #if defined(__WIN32__)
 int wmain(int argc, char** argv)
@@ -11,27 +12,17 @@ int wmain(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-    using std::cerr;
+    using std::cout;
     using std::endl;
 
-    if (SDL_Init(SDL_INIT_EVERYTHING))
-    {
-        cerr << "SDL_Init Error: " << SDL_GetError() << endl;
-        return EXIT_FAILURE;
-    }
+    Memory mem;
+    cout << (int)mem.ReadMemory(0x000) << endl;
 
-    SDL_Window* win = SDL_CreateWindow("CHIP8", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 64, 32, SDL_WINDOW_SHOWN);
-    
-    if (!win)
-    {
-        cerr << "SDL_CreateWindow Error: " << SDL_GetError() << endl;
-        return EXIT_FAILURE;
-    }
+    mem.WriteMemory(0x000, 0xFF);
+    cout << (int)mem.ReadMemory(0x000) << endl;
 
-    SDL_Delay(1000);
-
-    SDL_DestroyWindow(win);
-    SDL_Quit();
+    mem.WriteMemory(0x1000, 0x10);
+    cout << (int)mem.ReadMemory(0x1000) << endl;
 
     system("pause");
     return 0;

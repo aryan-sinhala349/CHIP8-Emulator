@@ -1,6 +1,8 @@
 #Add source files
 target_sources(${PROJECT_NAME} PRIVATE
     main.cpp
+    Emulator/Memory.h
+    Emulator/Memory.cpp
 )
 
 #Include project header files
