@@ -1,7 +1,7 @@
 #include <iostream>
 #include <SDL.h>
 
-#include "Emulator/Memory.h"
+#include "Emulator/Emulator.h"
 
 #if defined(__WIN32__)
 int wmain(int argc, char** argv)
@@ -12,17 +12,19 @@ int wmain(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-    using std::cout;
+    using std::cerr;
     using std::endl;
 
-    Memory mem;
-    cout << (int)mem.ReadMemory(0x000) << endl;
+    if (SDL_Init(SDL_INIT_EVERYTHING))
+    {
+        cerr << "SDL_Init Error: " << SDL_GetError() << endl;
+        return EXIT_FAILURE;
+    }
 
-    mem.WriteMemory(0x000, 0xFF);
-    cout << (int)mem.ReadMemory(0x000) << endl;
+    Emulator emu;
+    emu.Update();
 
-    mem.WriteMemory(0x1000, 0x10);
-    cout << (int)mem.ReadMemory(0x1000) << endl;
+    SDL_Quit();
 
     system("pause");
     return 0;
