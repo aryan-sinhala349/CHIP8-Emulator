@@ -12,19 +12,9 @@ int wmain(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-    using std::cerr;
-    using std::endl;
-
-    if (SDL_Init(SDL_INIT_EVERYTHING))
-    {
-        cerr << "SDL_Init Error: " << SDL_GetError() << endl;
-        return EXIT_FAILURE;
-    }
-
-    Emulator emu;
-    emu.Update();
-
-    SDL_Quit();
+    Emulator* emulator = new Emulator();
+    emulator->Update();
+    delete emulator;
 
     system("pause");
     return 0;

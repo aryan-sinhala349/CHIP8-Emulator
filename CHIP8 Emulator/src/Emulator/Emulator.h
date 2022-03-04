@@ -8,6 +8,7 @@ class Emulator
 {
 public:
     Emulator();
+    ~Emulator();
 
     void Update();
 
@@ -27,8 +28,9 @@ private:
     //Display
     bool m_Display[0x800] = { 0 };
 
-    SDL_Window* m_Window;
-    SDL_Renderer* m_Renderer;
+    bool m_Running = true;
+    SDL_Window* m_Window = nullptr;
+    SDL_Renderer* m_Renderer = nullptr;
 
     void Step();
     void Render();
