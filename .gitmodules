@@ -1,3 +1,0 @@
-[submodule "CHIP8 Emulator/vendor/SDL"]
-	path = CHIP8 Emulator/vendor/SDL
-	url = https://github.com/libsdl-org/SDL
