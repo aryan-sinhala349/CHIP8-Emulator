@@ -6,6 +6,16 @@ A CHIP8 Emulator to learn emulator development and application development.
     - `4 kilobytes`
     - Direct Access
     - All the memory is RAM and should be considered writable
+    - **Memory Map**
+<table border=1>
+    <tr>
+        <td><code>0x200</code> to <code>0xFFF</code> CHIP-8 Program / Data Space<br/><code>0x200</code> Start of most CHIP-8 programs</td>
+    </tr>
+    <tr>
+        <td><code>0x000</code> to <code>0x1FF</code> reserved for the interpreter</td>
+    </tr>
+</table>
+
 - **Display**
     - `64 x 32 pixels`
     - Monochrome
@@ -68,7 +78,7 @@ A CHIP8 Emulator to learn emulator development and application development.
     - Hexadecimal Keypad
     - `16 keys`, labeled `0` through `F`, arranged in a `4 x 4 grid`
     - Most common layout:
-        <table>
+        <table border=1>
             <tr>
                 <td><code>1</code></td>
                 <td><code>2</code></td>
