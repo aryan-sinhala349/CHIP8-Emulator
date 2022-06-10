@@ -165,28 +165,73 @@ A CHIP8 Emulator to learn emulator development and application development.
         - Only the lower 8 bits of the result are kept, and stored in `VX`
     - `8XY5` - `SUB VX, VY`
         - Set `VX = VX - VY`, set `VF = NOT borrow`
-        - If `VX > VY`, then `VG` is set to 1, otherwise 0
+        - If `VX > VY`, then `VF` is set to 1, otherwise 0
         - `VY` is subtracted from `VX`, and the result are stored in `VX`
     - `8XY6` - `SHR VX {, VY}`
+        - Set `VX = VX >> 1`
+        - If the least-significant bit of `VX` is 1, then `VF`is set to 1, otherwise 0
+        - `VX` is divided by 2
     - `8XY7` - `SUBN VX, VY`
+        - Set `VX = VY - VX`, set `VF = NOT borrow`
+        - If `VY > VX`, then `VF` is set to 1, otherwise 0
+        - `VX` is subtracted from `VY`, and the results are stored in `VX`
     - `8XYE` - `SHL VX {, VY}`
+        - Set `VX = VX << 1`
+        - If the most significant bit of `VX` is 1, then `VF` is set to 1 otherwise 0
+        - `VX` is multiplied by 2
     - `9XY0` - `SNE VX, VY`
+        - Skip the next instruction if `VX != VY`
+        - The values of `VX` and `VY` are compared, and if they are not equal, the program counter is increased by 2
     - `ANNN` - `LD I, addr`
+        - The value of register `I` is set to `NNN`
     - `BNNN` - `JP V0, addr`
+        - Jump to location `NNN + V0`
+        - The program counter is set to `NNN` plus the value of `V0`
     - `CXNN` - `RND VX, byte`
+        - Set `VX = random byte & NN`
+        - The interpreter generates a random number between 0 and 255, which is then `AND`ed with `NN`
+        - The results are stored in `VX`
     - `DXYN` - `DRW VX, VY, nibble`
+        - Display `N` byte sprite starting at memory location `I` at (`VX`, `VY`), set `VF = collision`
+        - The interpreter reads `N` bytes from memory, starting at the address stored in `I`
+        - These bytes are then displayed as sprites on screen at coordinates (`VX`, `VY`)
+        - Sprites are `XOR`ed onto the existing screen
+        - If this causes any pixels to be erased, `VF` is set to 1, otherwise it is set to 0
+        - If the sprite is positioned so part of it is outside the coordinates of the display, it wraps around to the opposite side of the screen
     - `EX9E` - `SKP VX`
+        - Skip next instruction if key with the value of `VX` is pressed
+        - Checks the keyboard, and if the key corresponding to the value of `VX` is currently in the down position, `PC` is increased by 2
     - `EXA1` - `SKNP VX`
+        - Skip next instruction if key with the value of `VX` is not pressed
+        - Checks the keyboard, and if the key corresponding to the value of `VX` is currently in the up position, `PC` is increased by 2
     - `FX07` - `LD VX, DT`
+        - Set `VX = delay timer value`
+        - The value of `DT` is placed into `VX`
     - `FX0A` - `LD VX, K`
+        - Wait for a key press, store the value of the key in `VX`
+        - All execution stops until a key is pressed, then the value of that key is stored in `VX`.
     - `FX15` - `LD DT, VX`
+        - Set `delay timer = VX`
+        - `DT` is set to the value of `VX`
     - `FX18` - `LD ST, VX`
+        - Set `sound timer = VX`
+        - `ST` is set to the value of `VX`
     - `FX1E` - `ADD I, VX`
+        - Set `I = I + VX`
+        - The values of `I` and `VX` are added, and the results are stored in `I`
     - `FX29` - `LD F, VX`
+        - Set `I = location of sprite for digit VX`
+        - The value of `I`is set to the location for the hexadecimal sprite corresponding to the value of `VX`
     - `FX33` - `LD B, VX`
+        - Store `BCD` representation of `VX` in memory locations `I`, `I+1`, and `I+2`
+        - The interpreter takes the decimal value of `VX`, and places the hundreds digit in memory at location in `I`, the tens digit at location `I+1`, and the ones digit at location `I+2`
     - `FX55` - `LD [I], VX`
+        - Stores registers `V0` through `VX` in memory starting at location `I`
+        - The interpreter copies the values of registers `V0` through `VX` into memory, starting at address in `I`
     - `FX65` - `LD VX, [I]`
+        - Read registers `V0` through `VX` from memory starting at location `I`
+        - The interpreter reads values from memory starting at location `I` into registers `V0` through `VX`
 
 # Bibliography
-- [Cowgod's Chip-8 Technical Reference](https://devernay.free.fr/hacks/chip8/C8TECH10.HTM)
+- [Cowgod's Chip-8 Technical Reference](http://devernay.free.fr/hacks/chip8/C8TECH10.HTM)
 - [Guide to making a CHIP-8 emulator](https://tobiasvl.github.io/blog/write-a-chip-8-emulator)
