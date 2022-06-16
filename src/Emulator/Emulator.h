@@ -23,9 +23,11 @@ namespace CHIP8
         bool m_Display[64 * 32] = { 0 };
         OpCodeFunction m_OpCodeFunctions[0xF + 1] = { 0 };
 
+        bool m_Running = false;
+
         struct
         {
-            word ProgramCounter = 0x0000;
+            word ProgramCounter = 0x0200;
             word Index = 0x0000;
 
             constexpr byte MaximumStackCount = 16;
@@ -35,7 +37,7 @@ namespace CHIP8
             byte DelayTimer = 0;
             byte SoundTimer = 0;
 
-            byte Variable[0xF + 1];
+            byte Variable[0xF + 1] = { 0 };
         } m_Registers;
 
         void Run();

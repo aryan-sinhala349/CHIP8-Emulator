@@ -2,10 +2,34 @@
 
 #include <random>
 
+/*
+ * This program was written by:
+ * - Aryan Sinha
+ *
+ * I made a couple of implementation decisions here primarily for performance reasons. For example, 
+ * I avoided branching, as that tends to be slightly slower than not branching. The difference isn't
+ * massive, but in high performance applications (such as an emulator like this one), reducing the
+ * performance overhead as much as possible allows programs to run at their native speeds on more
+ * hardware. Another example is unrolled loops. Unrolled loops tend to be faster, even if the 
+ * performance gain is negligible. While these implementations can't always be used, if you can
+ * use them, you should try. In some cases, however, the compiler will automatically unroll loops.
+ * Some compilers may miss this, however. Doing whatever you can to help the compiler will produce
+ * better code and better applications.
+ * 
+ * I also made sure to comment as much of the code as possible to help when reading this code. If
+ * there is anything that is unclear, feel free to experiment with the code in your own fork.
+ */
+
 namespace CHIP8
 {
     Emulator::Emulator()
     {
+        //Clear the memory
+        memset(&m_Memory[0], 0, 0x1000);
+
+        //Clear the display
+        memset(&m_Display[0], false, 64 * 32);
+
         //The font used for this emulator
         static constexpr byte font[] =
         {
@@ -28,8 +52,13 @@ namespace CHIP8
         };
 
         //Store the font in memory
-        for (byte i = 0; i < 0x50; i++)
-            m_Memory[i] = font[i];
+        memcpy(&m_Memory[0x000], &font[0x00], 0x50);
+
+        //TODO: Implement loading a ROM from a file
+        
+        //Load the ROM into memory
+        byte rom[0xE00] = { 0 };
+        memcpy(&m_Memory[0x200], &rom[0x000], 0xE00);
 
         //Register all the opcode functions
         m_OpCodeFunctions[0x0] = std::bind(&Emulator::OpCode0, this);
@@ -57,7 +86,26 @@ namespace CHIP8
 
     void Emulator::Run()
     {
-        //TODO: Implement loop, sound, display, and keypad
+        //Implement clock speed, and delay timers
+        /*
+        Example Fetch/Decode/Execute loop
+
+        //Fetch
+        word instruction = 0x0000;
+            
+        {
+            byte hi = m_Memory[m_ProgramCounter++];
+            byte lo = m_Memory[m_ProgramCounter++];
+
+            instruction = ((word)hi << 8) | lo;
+        }
+
+        //Decode
+        OpCodeFunction func = m_OpCodeFunctions[(instruction >> 24) & 0xF];
+
+        //Execute
+        func();
+        */
     }
 
     void Emulator::OpCode0(word instruction)
@@ -80,7 +128,10 @@ namespace CHIP8
             {
                 //Make sure the interpreter is currently in a subroutine
                 if (m_Registers.StackPointer < 0)
+                {
+                    //TODO: Implement some kind of stack underflow error
                     break;
+                }
 
                 //Set the program counter to the address at the top of the stack
                 m_Registers.ProgramCounter = m_Registers.Stack[m_Registers.StackPointer];
@@ -119,7 +170,10 @@ namespace CHIP8
         {
             //Check to see if there is space left in the stack
             if (m_Registers.StackPointer >= MaximumStackCount)
+            {
+                //TODO: Implement some kind of stack overflow error
                 return;
+            }
 
             //Get the address
             word args = instruction & 0xFFF;
@@ -148,11 +202,10 @@ namespace CHIP8
             byte vx = m_Registers.Variable[x];
 
             //Compare register VX to NN
-            if (vx == nn)
-            {
-                //If they are equal, increment the program counter by 2
-                m_Registers.ProgramCounter += 2;
-            }
+            bool comparison = vx == nn;
+
+            //If they are equal, increment the program counter by 2
+            m_Registers.ProgramCounter += comparison * 2;
         }
     }
 
@@ -169,11 +222,10 @@ namespace CHIP8
             byte vx = m_Registers.Variable[x];
 
             //Compare register VX to NN
-            if (vx != nn)
-            {
-                //If they are not equal, increment the program counter by 2
-                m_Registers.ProgramCounter += 2;
-            }
+            bool comparison = vx != nn;
+
+            //If they are equal, increment the program counter by 2
+            m_Registers.ProgramCounter += comparison * 2;
         }
     }
 
@@ -190,12 +242,11 @@ namespace CHIP8
             byte vx = m_Registers.Variable[x];
             byte vy = m_Registers.Variable[y];
 
-            //Compare the register VX to the register VY
-            if (vx == vy)
-            {
-                //If they are equal, increment the program counter by 2
-                m_Registers.ProgramCounter += 2;
-            }
+            //Compare register VX to register VY
+            bool comparison = vx == vy;
+
+            //If they are equal, increment the program counter by 2
+            m_Registers.ProgramCounter += comparison * 2;
         }
     }
 
@@ -370,11 +421,10 @@ namespace CHIP8
             byte vy = m_Registers.Variable[y];
 
             //Compare the variables of VX and VY
-            if (vx != vy)
-            {
-                //If they are not equal, increment the program counter by 2
-                m_Registers.ProgramCounter += 2;
-            }
+            bool comparison = vx != vy;
+
+            //If they are not equal, increment the program counter by 2
+            m_Registers.ProgramCounter += comparison * 2;
         }
     }
 
@@ -448,175 +498,148 @@ namespace CHIP8
                 //Get the current line of this sprite
                 byte currentLine = m_Memory[m_Registers.Index];
 
-                /*
-                 * I preferred to use an unrolled loop here, as it tends to be faster. Even if the performance gains are negligible, I prefer to reduce
-                 * overhead as much as possible. Sometimes, you are required to use a rolled loop (as seen just a few lines earlier), but in general,
-                 * you should try to unroll your loops if performance is your main concern
-                 */
-
                 //Draw this line pixel by pixel
                 bool currentPixel = false;
                 byte coordinate = 0;
+                bool collision = false;
 
-                //8
                 {
                     //Determine whether or not to flip the current pixel
                     currentPixel = (currentLine >> 7) & 0x01;
 
                     //The screen coordinate to look at
-                    coordinate = (vx + j) + (vy + 32 * n);
+                    coordinate = (vx + 0) + (vy + 32 * i);
 
                     //Make sure this coordinate is actually on screen
-                    if (coordinate >= 64 * 32)
-                        return;
+                    coordinate %= 64 * 32;
 
                     //Check if there will be a collision
-                    if (m_Display[coordinate] && currentPixel)
-                        m_Registers.Variable[0xF] = 0x01;
+                    collision |= m_Display[coordinate] && currentPixel;
 
                     //Flip this screen coordinate
                     m_Display[coordinate] = m_Display[coordinate] != currentPixel;
                 }
 
-                //7
                 {
                     //Determine whether or not to flip the current pixel
                     currentPixel = (currentLine >> 6) & 0x01;
 
                     //The screen coordinate to look at
-                    coordinate = (vx + j) + (vy + 32 * n);
+                    coordinate = (vx + 1) + (vy + 32 * i);
 
                     //Make sure this coordinate is actually on screen
-                    if (coordinate >= 64 * 32)
-                        return;
+                    coordinate %= 64 * 32;
 
                     //Check if there will be a collision
-                    if (m_Display[coordinate] && currentPixel)
-                        m_Registers.Variable[0xF] = 0x01;
+                    collision |= m_Display[coordinate] && currentPixel;
 
                     //Flip this screen coordinate
                     m_Display[coordinate] = m_Display[coordinate] != currentPixel;
                 }
 
-                //6
                 {
                     //Determine whether or not to flip the current pixel
                     currentPixel = (currentLine >> 5) & 0x01;
 
                     //The screen coordinate to look at
-                    coordinate = (vx + j) + (vy + 32 * n);
+                    coordinate = (vx + 2) + (vy + 32 * i);
 
                     //Make sure this coordinate is actually on screen
-                    if (coordinate >= 64 * 32)
-                        return;
+                    coordinate %= 64 * 32;
 
                     //Check if there will be a collision
-                    if (m_Display[coordinate] && currentPixel)
-                        m_Registers.Variable[0xF] = 0x01;
+                    collision |= m_Display[coordinate] && currentPixel;
 
                     //Flip this screen coordinate
                     m_Display[coordinate] = m_Display[coordinate] != currentPixel;
                 }
 
-                //5
                 {
                     //Determine whether or not to flip the current pixel
                     currentPixel = (currentLine >> 4) & 0x01;
 
                     //The screen coordinate to look at
-                    coordinate = (vx + j) + (vy + 32 * n);
+                    coordinate = (vx + 3) + (vy + 32 * i);
 
                     //Make sure this coordinate is actually on screen
-                    if (coordinate >= 64 * 32)
-                        return;
+                    coordinate %= 64 * 32;
 
                     //Check if there will be a collision
-                    if (m_Display[coordinate] && currentPixel)
-                        m_Registers.Variable[0xF] = 0x01;
+                    collision |= m_Display[coordinate] && currentPixel;
 
                     //Flip this screen coordinate
                     m_Display[coordinate] = m_Display[coordinate] != currentPixel;
                 }
 
-                //4
                 {
                     //Determine whether or not to flip the current pixel
                     currentPixel = (currentLine >> 3) & 0x01;
 
                     //The screen coordinate to look at
-                    coordinate = (vx + j) + (vy + 32 * n);
+                    coordinate = (vx + 4) + (vy + 32 * i);
 
                     //Make sure this coordinate is actually on screen
-                    if (coordinate >= 64 * 32)
-                        return;
+                    coordinate %= 64 * 32;
 
                     //Check if there will be a collision
-                    if (m_Display[coordinate] && currentPixel)
-                        m_Registers.Variable[0xF] = 0x01;
+                    collision |= m_Display[coordinate] && currentPixel;
 
                     //Flip this screen coordinate
                     m_Display[coordinate] = m_Display[coordinate] != currentPixel;
                 }
 
-                //3
                 {
                     //Determine whether or not to flip the current pixel
                     currentPixel = (currentLine >> 2) & 0x01;
 
                     //The screen coordinate to look at
-                    coordinate = (vx + j) + (vy + 32 * n);
+                    coordinate = (vx + 5) + (vy + 32 * i);
 
                     //Make sure this coordinate is actually on screen
-                    if (coordinate >= 64 * 32)
-                        return;
+                    coordinate %= 64 * 32;
 
                     //Check if there will be a collision
-                    if (m_Display[coordinate] && currentPixel)
-                        m_Registers.Variable[0xF] = 0x01;
+                    collision |= m_Display[coordinate] && currentPixel;
 
                     //Flip this screen coordinate
                     m_Display[coordinate] = m_Display[coordinate] != currentPixel;
                 }
 
-                //2
                 {
                     //Determine whether or not to flip the current pixel
                     currentPixel = (currentLine >> 1) & 0x01;
 
                     //The screen coordinate to look at
-                    coordinate = (vx + j) + (vy + 32 * n);
+                    coordinate = (vx + 6) + (vy + 32 * i);
 
                     //Make sure this coordinate is actually on screen
-                    if (coordinate >= 64 * 32)
-                        return;
+                    coordinate %= 64 * 32;
 
                     //Check if there will be a collision
-                    if (m_Display[coordinate] && currentPixel)
-                        m_Registers.Variable[0xF] = 0x01;
+                    collision |= m_Display[coordinate] && currentPixel;
 
                     //Flip this screen coordinate
                     m_Display[coordinate] = m_Display[coordinate] != currentPixel;
                 }
 
-                //1
                 {
                     //Determine whether or not to flip the current pixel
                     currentPixel = currentLine & 0x01;
 
                     //The screen coordinate to look at
-                    coordinate = (vx + j) + (vy + 32 * n);
+                    coordinate = (vx + 7) + (vy + 32 * i);
 
                     //Make sure this coordinate is actually on screen
-                    if (coordinate >= 64 * 32)
-                        return;
+                    coordinate %= 64 * 32;
 
                     //Check if there will be a collision
-                    if (m_Display[coordinate] && currentPixel)
-                        m_Registers.Variable[0xF] = 0x01;
+                    collision |= m_Display[coordinate] && currentPixel;
 
                     //Flip this screen coordinate
                     m_Display[coordinate] = m_Display[coordinate] != currentPixel;
                 }
+
+                m_Registers.Variable[0xF] = collision;
             }
         }
     }
@@ -642,12 +665,8 @@ namespace CHIP8
                 //TODO: Implement keypad
                 bool keyPressed = false;
 
-                //If the key is pressed
-                if (keyPressed)
-                {
-                    //Increment the program counter by 2
-                    m_Registers.ProgramCounter += 2;
-                }
+                //If the key is pressed, increment the program counter by 2
+                m_Registers.ProgramCounter += keyPressed * 2;
 
                 break;
             }
@@ -659,12 +678,10 @@ namespace CHIP8
                 //TODO: Implement keypad
                 bool keyPressed = false;
 
-                //If they key is pressed
-                if (!keyPressed)
-                {
-                    //Increment the program counter by 2
-                    m_Registers.ProgramCounter += 2;
-                }
+                //If the key is not pressed, increment the program counter by 2
+                m_Registers.ProgramCounter += keyPressed * 2;
+
+                break;
             }
 
             //No known opcodes
@@ -704,18 +721,13 @@ namespace CHIP8
                 //Get the currently pressed key
                 //TODO: Implement keypad
                 sbyte pressedKey = 0;
+                bool keyPressed = pressedKey >= 0x0;
 
-                //If there is a pressed key
-                if (pressedKey >= 0x0)
-                {
-                    //Store the pressed key in VX
-                    m_Registers.Variable[x] = pressedKey;
+                //If there is a pressed key, store the pressed key in VX
+                m_Registers.Variable[x] = keyPressed * pressedKey;
 
-                    break;
-                }
-                
                 //Halt execution otherwise
-                m_Registers.ProgramCounter -= 2;
+                m_Registers.ProgramCounter -= (!keyPressed) * 2;
 
                 break;
             }
